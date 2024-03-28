@@ -1,3 +1,20 @@
+## Technology Stack Used:
+
+•	Backend Framework: Spring Boot for building the Java-based backend.
+
+•	Database: MYSQL for storing restaurant, orders, and user information.
+
+•	Web Framework: Spring MVC for handling web requests.
+
+•	ORM Framework: Hibernate for object-relational mapping.
+
+•	Security: Spring Security for user authentication and authorization.
+
+•	Fail Over Mechanism: Resilinece4j
+
+•	Logging Framework: Slf4j framework
+
+
 ## Using the application:
 
 To get the services up and running use  **docker-compose up -d ** ,inside the root folder of the project.
