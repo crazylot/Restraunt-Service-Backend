@@ -1,0 +1,146 @@
+version: '3'
+services:
+
+  ## restraunt  and order service my sql db
+  mysql:
+    container_name: mysql
+    image: mysql:8.0.27
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes: 
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - eureka-network
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+  
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+    depends_on:
+      - mysql
+    networks:
+      - eureka-network
+
+  ## naming server
+  naming-server:
+    image: 'muskan001/naming-server:latest'
+    container_name: naming-server
+    ports:
+      - '8761:8761'  
+    networks:
+      - eureka-network  
+  
+  ## Identity service
+  identityservice:
+    image: 'muskan001/identityservice:latest'
+    #container_name: identityservice
+    ports:
+      - "8700:8700"
+    environment:
+      - eureka.client.service-url.defaultZone=http://naming-server:8761/eureka
+      - spring.datasource.url=jdbc:mysql://mysql:3306/auth_service?autoReconnect=true&allowPublicKeyRetrieval=true&useSSL=false
+      - spring.datasource.username=admin
+      - spring.datasource.password=root
+      - eureka.instance.hostname=identityservice
+    networks:
+      - eureka-network
+    depends_on:
+      - mysql
+      - naming-server
+
+  ## api gateway
+  api-gateway:
+    image : 'muskan001/api-gateway:latest'
+    container_name: api-gateway
+    ports:
+      - '8765:8765'
+    environment:
+      - spring.application.name=api-gateway
+      - eureka.client.service-url.defaultZone=http://naming-server:8761/eureka
+      - eureka.instance.hostname=api-gateway
+    networks:
+      - eureka-network
+    depends_on:
+     - naming-server
+     - identityservice
+
+
+  ## restraunt service
+  restraunt-service:
+    image: 'muskan001/restraunt-service:latest'
+    #container_name: restraunt-service
+    ports:
+      - "8083:8083"
+    environment:
+      - eureka.client.service-url.defaultZone=http://naming-server:8761/eureka
+      - spring.datasource.url=jdbc:mysql://mysql:3306/restraunt_service?autoReconnect=true&allowPublicKeyRetrieval=true&useSSL=false
+      - spring.datasource.username=admin
+      - spring.datasource.password=root
+      - eureka.instance.hostname=restraunt-service
+    networks:
+      - eureka-network
+    depends_on:
+      - mysql
+      - naming-server
+      - api-gateway
+  
+  ## order service
+  order-service:
+    image: 'muskan001/order-service:latest'
+    container_name: order-service
+    ports:
+      - "8081:8081"
+    environment:
+      - eureka.client.service-url.defaultZone=http://naming-server:8761/eureka
+      - spring.datasource.url=jdbc:mysql://mysql:3306/order_service?autoReconnect=true&allowPublicKeyRetrieval=true&useSSL=false
+      - spring.datasource.username=admin
+      - spring.datasource.password=root
+      - eureka.instance.hostname=order-service
+    networks:
+      - eureka-network
+    depends_on:
+      - mysql
+      - naming-server
+      - api-gateway
+      - notificationservice
+  
+  ## Payment service
+  payment-service:
+    image: 'muskan001/payment-service:latest'
+    ports:
+      - "8086:8086"
+    environment:
+      - eureka.client.service-url.defaultZone=http://naming-server:8761/eureka
+      - eureka.instance.hostname=payment-service
+    networks:
+      - eureka-network
+    depends_on:
+      - naming-server
+      - api-gateway
+  
+  ## Notification service
+  notificationservice:
+    image: 'muskan001/notification-service:latest'
+    ports:
+      - "8010:8010"
+    environment:
+      - eureka.client.service-url.defaultZone=http://naming-server:8761/eureka
+      - eureka.instance.hostname=notificationservice
+    networks:
+      - eureka-network
+    depends_on:
+      - naming-server
+      - api-gateway
+
+
+networks:
+  eureka-network:
